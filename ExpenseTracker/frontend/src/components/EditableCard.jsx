@@ -7,13 +7,21 @@ export default function EditableCard({ entry, onUpdate, onDelete, showCurrency =
   const [editingLabel, setEditingLabel] = useState(false)
   const [editingAmount, setEditingAmount] = useState(false)
   const [labelVal, setLabelVal] = useState(entry.label)
-  const [amountVal, setAmountVal] = useState(entry.original_amount !== undefined ? entry.original_amount : entry.amount)
   const [showPayments, setShowPayments] = useState(false)
   const labelRef = useRef()
   const amountRef = useRef()
 
+  const isDebt = entry.type === 'owed' || entry.type === 'owing'
+  const amount = isDebt ? (entry.original_amount !== undefined ? entry.original_amount : 0) : (entry.amount !== undefined ? entry.amount : 0)
+  const [amountVal, setAmountVal] = useState(amount)
+
   useEffect(() => { if (editingLabel) labelRef.current?.focus() }, [editingLabel])
   useEffect(() => { if (editingAmount) amountRef.current?.select() }, [editingAmount])
+
+  // Update local amountVal when entry.amount changes
+  useEffect(() => {
+    setAmountVal(amount)
+  }, [amount])
 
   const commitLabel = () => {
     setEditingLabel(false)
@@ -22,10 +30,12 @@ export default function EditableCard({ entry, onUpdate, onDelete, showCurrency =
   const commitAmount = () => {
     setEditingAmount(false)
     const v = parseFloat(amountVal) || 0
-    if (v !== entry.original_amount) onUpdate(entry.id, { original_amount: v })
+    if (isDebt) {
+      if (v !== amount) onUpdate(entry.id, { original_amount: v })
+    } else {
+      if (v !== amount) onUpdate(entry.id, { amount: v })
+    }
   }
-
-  const isDebt = entry.type === 'owed' || entry.type === 'owing'
 
   return (
     <div style={{
@@ -83,10 +93,10 @@ export default function EditableCard({ entry, onUpdate, onDelete, showCurrency =
         />
       ) : (
         <span
-          onClick={() => { setAmountVal(entry.original_amount); setEditingAmount(true) }}
+          onClick={() => { setAmountVal(amount); setEditingAmount(true) }}
           style={{ fontWeight: 500, cursor: 'pointer', color: 'var(--text)', whiteSpace: 'nowrap' }}
           title="click to edit"
-        >{fmt(entry.original_amount)}</span>
+        >{fmt(amount)}</span>
       )}
 
       {isDebt && (
