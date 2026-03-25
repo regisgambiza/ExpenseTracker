@@ -5,7 +5,7 @@ const fmt = (n) => Math.round(parseFloat(n) || 0).toLocaleString()
 export default function Column({ title, badge, badgeColor, entries, onAdd, onUpdate, onDelete, showCurrency, footer }) {
   return (
     <div style={{
-      flex: '0 0 230px',
+      flex: '0 0 320px',
       background: 'var(--surface)',
       border: '1px solid var(--border)',
       borderRadius: 'var(--radius-lg)',

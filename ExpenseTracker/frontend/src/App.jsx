@@ -99,109 +99,189 @@ export default function App() {
       </div>
 
       {/* Board */}
-      <div style={{ display: 'flex', gap: 12, overflowX: 'auto', alignItems: 'flex-start', paddingBottom: 8 }}>
+      <div style={{ display: 'flex', gap: 16, overflowX: 'auto', alignItems: 'flex-start', paddingBottom: 8 }}>
 
-        {/* Income */}
-        <Column
-          title="Income"
-          badge="THB"
-          badgeColor="thb"
-          entries={b.byCategory('income')}
-          onAdd={() => b.addEntry('income', 'THB')}
-          onUpdate={b.updateEntry}
-          onDelete={b.removeEntry}
-          footer={<SubTotal label="Total" value={stats.income} color="var(--success)" />}
-        />
-
-        {/* Thailand expenses */}
-        <Column
-          title="Thailand expenses"
-          badge="THB"
-          badgeColor="thb"
-          entries={b.byCategory('thb')}
-          onAdd={() => b.addEntry('thb', 'THB')}
-          onUpdate={b.updateEntry}
-          onDelete={b.removeEntry}
-          footer={<SubTotal label="Total" value={stats.thbExp} />}
-        />
-
-        {/* SA expenses */}
-        <Column
-          title="SA expenses"
-          badge="ZAR"
-          badgeColor="zar"
-          entries={b.byCategory('zar')}
-          onAdd={() => b.addEntry('zar', 'ZAR')}
-          onUpdate={b.updateEntry}
-          onDelete={b.removeEntry}
-          footer={
-            <>
-              <SubTotal label="Total (ZAR)" value={stats.zarExp} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: 'var(--muted)' }}>≈ THB</span>
-                <input
-                  type="number"
-                  value={b.zarThbManual || ''}
-                  onChange={e => b.saveZarThbManual(parseFloat(e.target.value) || 0)}
-                  placeholder={stats.zarThb.toFixed(2)}
-                  style={{
-                    background: 'transparent',
-                    border: '1px solid var(--border2)',
-                    borderRadius: 'var(--radius)',
-                    padding: '2px 6px',
-                    fontSize: 12,
-                    color: b.zarThbManual ? 'var(--accent)' : 'var(--muted)',
-                    width: 80,
-                    textAlign: 'right',
-                    fontFamily: 'var(--font-mono)',
-                    outline: 'none'
-                  }}
-                  title="Enter manual THB total (leave empty for auto calculation)"
-                />
-              </div>
-            </>
-          }
-        />
-
-        {/* Debts column */}
-        <div style={{
-          flex: '0 0 240px',
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-lg)',
-          padding: 12,
-        }}>
-          <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.07em', fontFamily: 'var(--font-display)' }}>
-            Debts
-          </span>
-
-          <SectionLabel>I owe</SectionLabel>
-          <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 6 }}>click name or amount to edit</div>
-          {b.byCategory('owing').map(e => (
-            <EditableCard key={e.id} entry={e} onUpdate={b.updateEntry} onDelete={b.removeEntry} showCurrency />
-          ))}
-          <button onClick={() => b.addEntry('owing', 'THB')} style={addBtn}>+ add person</button>
-          <div style={{ borderTop: '1px solid var(--border)', margin: '8px 0 5px' }} />
-          <SubTotal label="Total owing (THB)" value={stats.owingThb} color="var(--danger)" />
-
-          <SectionLabel>Owed to me</SectionLabel>
-          <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 6 }}>click name or amount to edit</div>
-          {b.byCategory('owed').map(e => (
-            <EditableCard key={e.id} entry={e} onUpdate={b.updateEntry} onDelete={b.removeEntry} showCurrency />
-          ))}
-          <button onClick={() => b.addEntry('owed', 'THB')} style={addBtn}>+ add person</button>
-          <div style={{ borderTop: '1px solid var(--border)', margin: '8px 0 5px' }} />
-          <SubTotal label="Total owed (THB)" value={stats.owedThb} color="var(--success)" />
-          <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0 4px' }} />
-          <SubTotal
-            label="Net position"
-            value={(stats.netDebt >= 0 ? '+' : '') + fmt(stats.netDebt)}
-            color={stats.netDebt >= 0 ? 'var(--success)' : 'var(--danger)'}
+        {/* Left side - Income + Summary */}
+        <div style={{ display: 'flex', gap: 12, flexDirection: 'column' }}>
+          <Column
+            title="Income"
+            badge="THB"
+            badgeColor="thb"
+            entries={b.byCategory('income')}
+            onAdd={() => b.addEntry('income', 'THB')}
+            onUpdate={b.updateEntry}
+            onDelete={b.removeEntry}
+            footer={<SubTotal label="Total" value={stats.income} color="var(--success)" />}
           />
+
+          {/* Summary Card */}
+          <div style={{
+            flex: '0 0 auto',
+            width: 320,
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: 12,
+          }}>
+            <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.07em', fontFamily: 'var(--font-display)' }}>
+              Summary
+            </span>
+            <div style={{ marginTop: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Expenses</span>
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)' }}>{fmt(stats.totalExp)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Surplus</span>
+                <span style={{ fontSize: 12, fontWeight: 500, color: stats.surplus >= 0 ? 'var(--success)' : 'var(--danger)' }}>{fmt(stats.surplus)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Save rate</span>
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--accent)' }}>{stats.savRate}%</span>
+              </div>
+              <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0', paddingTop: 6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>Bills to pay</span>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--thb)' }}>{fmt(stats.unpaidThb)} THB</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--zar)' }}>{fmt(stats.unpaidZar)} ZAR</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Summary */}
-        <Summary stats={stats} />
+        {/* Divider */}
+        <div style={{ width: 1, background: 'var(--border)', alignSelf: 'stretch' }} />
+
+        {/* Right side - Expenses */}
+        <div style={{ display: 'flex', gap: 12 }}>
+          <Column
+            title="Thailand expenses"
+            badge="THB"
+            badgeColor="thb"
+            entries={b.byCategory('thb')}
+            onAdd={() => b.addEntry('thb', 'THB')}
+            onUpdate={b.updateEntry}
+            onDelete={b.removeEntry}
+            footer={<SubTotal label="Total" value={stats.thbExp} />}
+          />
+
+          <Column
+            title="SA expenses"
+            badge="ZAR"
+            badgeColor="zar"
+            entries={b.byCategory('zar')}
+            onAdd={() => b.addEntry('zar', 'ZAR')}
+            onUpdate={b.updateEntry}
+            onDelete={b.removeEntry}
+            footer={
+              <>
+                <SubTotal label="Total (ZAR)" value={stats.zarExp} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>≈ THB</span>
+                  <input
+                    type="number"
+                    value={b.zarThbManual || ''}
+                    onChange={e => b.saveZarThbManual(parseFloat(e.target.value) || 0)}
+                    placeholder={stats.zarThb.toFixed(2)}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid var(--border2)',
+                      borderRadius: 'var(--radius)',
+                      padding: '2px 6px',
+                      fontSize: 12,
+                      color: b.zarThbManual ? 'var(--accent)' : 'var(--muted)',
+                      width: 80,
+                      textAlign: 'right',
+                      fontFamily: 'var(--font-mono)',
+                      outline: 'none'
+                    }}
+                    title="Enter manual THB total (leave empty for auto calculation)"
+                  />
+                </div>
+              </>
+            }
+          />
+
+          {/* Debts column */}
+          <div style={{
+            flex: '0 0 320px',
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: 12,
+          }}>
+            <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.07em', fontFamily: 'var(--font-display)' }}>
+              Debts
+            </span>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 10,
+              fontWeight: 500,
+              color: 'var(--muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '.07em',
+              margin: '12px 0 5px 1px',
+              fontFamily: 'var(--font-display)'
+            }}>
+              <span style={{
+                background: 'var(--danger)',
+                color: '#fff',
+                padding: '2px 8px',
+                borderRadius: 'var(--radius)',
+                fontSize: 9,
+                fontWeight: 600
+              }}>I OWE</span>
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 6 }}>click name or amount to edit</div>
+            {b.byCategory('owing').map(e => (
+              <EditableCard key={e.id} entry={e} onUpdate={b.updateEntry} onDelete={b.removeEntry} showCurrency />
+            ))}
+            <button onClick={() => b.addEntry('owing', 'THB')} style={addBtn}>+ add person</button>
+            <div style={{ borderTop: '1px solid var(--border)', margin: '8px 0 5px' }} />
+            <SubTotal label="Total owing (THB)" value={stats.owingThb} color="var(--danger)" />
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 10,
+              fontWeight: 500,
+              color: 'var(--muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '.07em',
+              margin: '12px 0 5px 1px',
+              fontFamily: 'var(--font-display)'
+            }}>
+              <span style={{
+                background: 'var(--success)',
+                color: '#fff',
+                padding: '2px 8px',
+                borderRadius: 'var(--radius)',
+                fontSize: 9,
+                fontWeight: 600
+              }}>OWED TO ME</span>
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 6 }}>click name or amount to edit</div>
+            {b.byCategory('owed').map(e => (
+              <EditableCard key={e.id} entry={e} onUpdate={b.updateEntry} onDelete={b.removeEntry} showCurrency />
+            ))}
+            <button onClick={() => b.addEntry('owed', 'THB')} style={addBtn}>+ add person</button>
+            <div style={{ borderTop: '1px solid var(--border)', margin: '8px 0 5px' }} />
+            <SubTotal label="Total owed (THB)" value={stats.owedThb} color="var(--success)" />
+            <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0 4px' }} />
+            <SubTotal
+              label="Net position"
+              value={(stats.netDebt >= 0 ? '+' : '') + fmt(stats.netDebt)}
+              color={stats.netDebt >= 0 ? 'var(--success)' : 'var(--danger)'}
+            />
+          </div>
+        </div>
 
       </div>
     </div>

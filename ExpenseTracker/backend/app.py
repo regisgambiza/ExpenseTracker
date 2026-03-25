@@ -69,10 +69,37 @@ def create_month():
     if src:
         src_month = query("SELECT id FROM months WHERE year=%s AND month=%s", (src["year"], src["month"]), one=True)
         if src_month:
+            # build a mapping of old entry_id -> new entry_id
             cur.execute("""
                 INSERT INTO entries(month_id,category,label,amount,currency,sort_order)
                 SELECT %s,category,label,amount,currency,sort_order FROM entries WHERE month_id=%s
+                RETURNING id, category, label, amount, currency
             """, (new_id, src_month["id"]))
+            new_entries = cur.fetchall()
+            # fetch source entries for matching
+            cur.execute("SELECT id, category, label, amount, currency FROM entries WHERE month_id=%s", (src_month["id"],))
+            src_entries = cur.fetchall()
+            # match by category+label+amount+currency to build id map
+            id_map = {}
+            for se in src_entries:
+                for ne in new_entries:
+                    if (se["category"] == ne["category"] and se["label"] == ne["label"] and
+                        se["amount"] == ne["amount"] and se["currency"] == ne["currency"]):
+                        id_map[se["id"]] = ne["id"]
+                        break
+            # copy debt_payments for matched entries
+            if id_map:
+                src_ids = list(id_map.keys())
+                placeholders = ','.join(['%s'] * len(src_ids))
+                cur.execute(f"SELECT id, entry_id, amount, payment_date, note FROM debt_payments WHERE entry_id IN ({placeholders})", src_ids)
+                src_payments = cur.fetchall()
+                for sp in src_payments:
+                    new_entry_id = id_map.get(sp["entry_id"])
+                    if new_entry_id:
+                        cur.execute("""
+                            INSERT INTO debt_payments(entry_id, amount, payment_date, note)
+                            VALUES(%s, %s, %s, %s)
+                        """, (new_entry_id, sp["amount"], sp["payment_date"], sp["note"]))
     conn.commit()
     cur.close(); conn.close()
     return jsonify({"id": new_id}), 201
