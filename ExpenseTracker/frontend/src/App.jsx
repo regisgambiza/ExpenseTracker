@@ -239,10 +239,10 @@ export default function App() {
               }}>I OWE</span>
             </div>
             <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 6 }}>click name or amount to edit</div>
-            {b.byCategory('owing').map(e => (
-              <EditableCard key={e.id} entry={e} onUpdate={b.updateEntry} onDelete={b.removeEntry} showCurrency />
+            {b.debts.filter(d => d.type === 'owing').map(e => (
+              <EditableCard key={e.id} entry={e} onUpdate={b.updateDebt} onDelete={b.deleteDebt} showCurrency />
             ))}
-            <button onClick={() => b.addEntry('owing', 'THB')} style={addBtn}>+ add person</button>
+            <button onClick={() => b.addDebt('owing', 'THB')} style={addBtn}>+ add person</button>
             <div style={{ borderTop: '1px solid var(--border)', margin: '8px 0 5px' }} />
             <SubTotal label="Total owing (THB)" value={stats.owingThb} color="var(--danger)" />
 
@@ -268,10 +268,10 @@ export default function App() {
               }}>OWED TO ME</span>
             </div>
             <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 6 }}>click name or amount to edit</div>
-            {b.byCategory('owed').map(e => (
-              <EditableCard key={e.id} entry={e} onUpdate={b.updateEntry} onDelete={b.removeEntry} showCurrency />
+            {b.debts.filter(d => d.type === 'owed').map(e => (
+              <EditableCard key={e.id} entry={e} onUpdate={b.updateDebt} onDelete={b.deleteDebt} showCurrency />
             ))}
-            <button onClick={() => b.addEntry('owed', 'THB')} style={addBtn}>+ add person</button>
+            <button onClick={() => b.addDebt('owed', 'THB')} style={addBtn}>+ add person</button>
             <div style={{ borderTop: '1px solid var(--border)', margin: '8px 0 5px' }} />
             <SubTotal label="Total owed (THB)" value={stats.owedThb} color="var(--success)" />
             <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0 4px' }} />

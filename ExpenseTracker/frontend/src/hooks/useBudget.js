@@ -14,16 +14,19 @@ export function useBudget() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [filter, setFilter] = useState('all') // 'all', 'unpaid', 'paid'
   const [zarThbManual, setZarThbManual] = useState(null)
+  const [debts, setDebts] = useState([])
 
   const load = useCallback(async (y, m) => {
     setLoading(true)
     try {
-      const [monthData, settings] = await Promise.all([
+      const [monthData, settings, debtsData] = await Promise.all([
         api.getMonth(y, m).catch(() => null),
-        api.getSettings()
+        api.getSettings(),
+        api.getDebts()
       ])
       setRate(parseFloat(settings.zar_thb_rate || 1.65))
       setZarThbManual(settings.zar_thb_manual_total ? parseFloat(settings.zar_thb_manual_total) : null)
+      setDebts(debtsData || [])
       if (monthData) {
         setData(monthData)
       } else {
@@ -109,8 +112,31 @@ export function useBudget() {
     await api.deleteEntry(id)
   }
 
+  // Debt functions (independent from months)
+  const addDebt = async (type, currency = 'THB') => {
+    const debt = await api.createDebt({
+      type,
+      label: 'New debt',
+      amount: 0,
+      currency
+    })
+    setDebts(prev => [...prev, {
+      id: debt.id, type, label: 'New debt', original_amount: 0, currency, total_paid: 0
+    }])
+  }
+
+  const updateDebt = async (id, changes) => {
+    setDebts(prev => prev.map(d => d.id === id ? { ...d, ...changes } : d))
+    await api.updateDebt(id, changes)
+  }
+
+  const deleteDebt = async (id) => {
+    setDebts(prev => prev.filter(d => d.id !== id))
+    await api.deleteDebt(id)
+  }
+
   const entries = data?.entries || []
-  
+
   const filterByPaid = (ents) => {
     if (filter === 'unpaid') return ents.filter(e => !e.paid)
     if (filter === 'paid') return ents.filter(e => e.paid)
@@ -139,16 +165,20 @@ export function useBudget() {
   const totalExp = thbExp + zarThb
   const surplus = income - totalExp
   const savRate = income ? Math.round((surplus / income) * 100) : 0
-  const owedThb = sumThb('owed')
-  const owingThb = sumThb('owing')
+  
+  // Calculate debts from independent debts table
+  const owingDebts = debts.filter(d => d.type === 'owing')
+  const owedDebts = debts.filter(d => d.type === 'owed')
+  const owedThb = owedDebts.reduce((s, d) => s + toThb((parseFloat(d.original_amount) || 0) - (parseFloat(d.total_paid) || 0), d.currency), 0)
+  const owingThb = owingDebts.reduce((s, d) => s + toThb((parseFloat(d.original_amount) || 0) - (parseFloat(d.total_paid) || 0), d.currency), 0)
   const netDebt = owedThb - owingThb
 
   // Unpaid totals (for expense categories only)
   const unpaidZar = entries.filter(e => e.category === 'zar' && !e.paid)
     .reduce((s, e) => s + (parseFloat(e.amount) || 0), 0)
   // Calculate unpaid THB for SA using manual rate if set, otherwise use exchange rate
-  const zarToThbRate = zarThbManual !== null && zarThbManual > 0 && zarExp > 0 
-    ? zarThbManual / zarExp 
+  const zarToThbRate = zarThbManual !== null && zarThbManual > 0 && zarExp > 0
+    ? zarThbManual / zarExp
     : rate
   const unpaidZarThb = unpaidZar * zarToThbRate
   const unpaidThb = entries.filter(e => e.category === 'thb' && !e.paid)
@@ -165,6 +195,7 @@ export function useBudget() {
     filter, setFilter,
     navigate, rollover,
     byCategory, addEntry, updateEntry, removeEntry, toThb,
+    debts, addDebt, updateDebt, deleteDebt,
     stats: { income, thbExp, zarExp, zarThb, totalExp, surplus, savRate, owedThb, owingThb, netDebt, unpaidThb, unpaidZar, unpaidZarThb, totalUnpaid }
   }
 }

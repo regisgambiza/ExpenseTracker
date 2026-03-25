@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS months (
 CREATE TABLE IF NOT EXISTS entries (
   id SERIAL PRIMARY KEY,
   month_id INTEGER NOT NULL REFERENCES months(id) ON DELETE CASCADE,
-  category VARCHAR(20) NOT NULL CHECK (category IN ('income','thb','zar','owed','owing')),
+  category VARCHAR(20) NOT NULL CHECK (category IN ('income','thb','zar')),
   label VARCHAR(100) NOT NULL,
   amount NUMERIC(12,2) NOT NULL DEFAULT 0,
   currency VARCHAR(3) DEFAULT 'THB',
@@ -24,6 +24,29 @@ CREATE TABLE IF NOT EXISTS settings (
   key VARCHAR(50) PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+-- Independent debts table (debts persist across months)
+CREATE TABLE IF NOT EXISTS debts (
+  id SERIAL PRIMARY KEY,
+  type VARCHAR(10) NOT NULL CHECK (type IN ('owing', 'owed')),
+  label VARCHAR(100) NOT NULL,
+  original_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+  currency VARCHAR(3) DEFAULT 'THB',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS debt_payments (
+  id SERIAL PRIMARY KEY,
+  entry_id INTEGER REFERENCES entries(id) ON DELETE CASCADE,
+  debt_id INTEGER REFERENCES debts(id) ON DELETE CASCADE,
+  amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+  payment_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  note VARCHAR(255),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_debt_payments_entry_id ON debt_payments(entry_id);
+CREATE INDEX IF NOT EXISTS idx_debt_payments_debt_id ON debt_payments(debt_id);
 
 INSERT INTO settings (key, value) VALUES ('zar_thb_rate', '1.65') ON CONFLICT DO NOTHING;
 
@@ -63,9 +86,9 @@ BEGIN
     (m_id,'zar','Transport',600,'ZAR',7),
     (m_id,'zar','Internet',500,'ZAR',8),
     (m_id,'zar','Food',4000,'ZAR',9);
-
-  -- Debts
-  INSERT INTO entries (month_id,category,label,amount,currency,sort_order) VALUES
-    (m_id,'owing','Jah B',4000,'ZAR',1),
-    (m_id,'owed','Blessing',4500,'THB',1);
 END $$;
+
+-- Seed independent debts
+INSERT INTO debts (type, label, original_amount, currency) VALUES
+  ('owing', 'Jah B', 4000, 'ZAR'),
+  ('owed', 'Blessing', 4500, 'THB');

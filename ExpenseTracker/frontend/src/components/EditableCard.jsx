@@ -7,7 +7,7 @@ export default function EditableCard({ entry, onUpdate, onDelete, showCurrency =
   const [editingLabel, setEditingLabel] = useState(false)
   const [editingAmount, setEditingAmount] = useState(false)
   const [labelVal, setLabelVal] = useState(entry.label)
-  const [amountVal, setAmountVal] = useState(entry.amount)
+  const [amountVal, setAmountVal] = useState(entry.original_amount !== undefined ? entry.original_amount : entry.amount)
   const [showPayments, setShowPayments] = useState(false)
   const labelRef = useRef()
   const amountRef = useRef()
@@ -22,11 +22,10 @@ export default function EditableCard({ entry, onUpdate, onDelete, showCurrency =
   const commitAmount = () => {
     setEditingAmount(false)
     const v = parseFloat(amountVal) || 0
-    if (v !== entry.amount) onUpdate(entry.id, { amount: v })
+    if (v !== entry.original_amount) onUpdate(entry.id, { original_amount: v })
   }
 
-  const isPaid = entry.paid || false
-  const isDebt = entry.category === 'owed' || entry.category === 'owing'
+  const isDebt = entry.type === 'owed' || entry.type === 'owing'
 
   return (
     <div style={{
@@ -38,21 +37,12 @@ export default function EditableCard({ entry, onUpdate, onDelete, showCurrency =
       display: 'flex',
       alignItems: 'center',
       gap: 6,
-      opacity: isPaid ? 0.5 : 1,
       transition: 'border-color .15s',
       position: 'relative'
     }}
       onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
       onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
     >
-      <input
-        type="checkbox"
-        checked={isPaid}
-        onChange={() => onUpdate(entry.id, { paid: !isPaid })}
-        style={{ cursor: 'pointer', accentColor: 'var(--success)', width: 14, height: 14, flexShrink: 0 }}
-        title={isPaid ? 'Mark as unpaid' : 'Mark as paid'}
-      />
-
       {editingLabel ? (
         <input
           ref={labelRef}
@@ -60,12 +50,12 @@ export default function EditableCard({ entry, onUpdate, onDelete, showCurrency =
           onChange={e => setLabelVal(e.target.value)}
           onBlur={commitLabel}
           onKeyDown={e => e.key === 'Enter' && commitLabel()}
-          style={{ ...inputStyle, textDecoration: isPaid ? 'line-through' : 'none' }}
+          style={{ ...inputStyle }}
         />
       ) : (
         <span
           onClick={() => setEditingLabel(true)}
-          style={{ flex: 1, color: 'var(--text)', cursor: 'text', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: isPaid ? 'line-through' : 'none' }}
+          style={{ flex: 1, color: 'var(--text)', cursor: 'text', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
           title="click to edit"
         >{entry.label}</span>
       )}
@@ -75,7 +65,6 @@ export default function EditableCard({ entry, onUpdate, onDelete, showCurrency =
           value={entry.currency}
           onChange={e => onUpdate(entry.id, { currency: e.target.value })}
           style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--border2)', color: 'var(--muted)', fontSize: 11, outline: 'none', cursor: 'pointer' }}
-          disabled={isPaid}
         >
           <option value="THB">THB</option>
           <option value="ZAR">ZAR</option>
@@ -90,14 +79,14 @@ export default function EditableCard({ entry, onUpdate, onDelete, showCurrency =
           onChange={e => setAmountVal(e.target.value)}
           onBlur={commitAmount}
           onKeyDown={e => e.key === 'Enter' && commitAmount()}
-          style={{ ...inputStyle, width: 80, textAlign: 'right', textDecoration: isPaid ? 'line-through' : 'none' }}
+          style={{ ...inputStyle, width: 80, textAlign: 'right' }}
         />
       ) : (
         <span
-          onClick={() => { setAmountVal(entry.amount); setEditingAmount(true) }}
-          style={{ fontWeight: 500, cursor: 'pointer', color: 'var(--text)', whiteSpace: 'nowrap', textDecoration: isPaid ? 'line-through' : 'none' }}
+          onClick={() => { setAmountVal(entry.original_amount); setEditingAmount(true) }}
+          style={{ fontWeight: 500, cursor: 'pointer', color: 'var(--text)', whiteSpace: 'nowrap' }}
           title="click to edit"
-        >{fmt(entry.amount)}</span>
+        >{fmt(entry.original_amount)}</span>
       )}
 
       {isDebt && (
@@ -130,7 +119,7 @@ export default function EditableCard({ entry, onUpdate, onDelete, showCurrency =
       >✕</button>
 
       {showPayments && isDebt && (
-        <PaymentHistory entry={entry} onClose={() => setShowPayments(false)} />
+        <PaymentHistory debt={entry} onClose={() => setShowPayments(false)} />
       )}
     </div>
   )

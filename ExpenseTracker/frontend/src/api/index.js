@@ -17,3 +17,12 @@ export const deleteEntry = (id) => api.delete(`/entries/${id}`)
 export const getPayments = (entryId) => api.get(`/entries/${entryId}/payments`).then(r => r.data)
 export const createPayment = (entryId, data) => api.post(`/entries/${entryId}/payments`, data).then(r => r.data)
 export const deletePayment = (id) => api.delete(`/payments/${id}`)
+
+// Independent debts API
+export const getDebts = () => api.get('/debts').then(r => r.data)
+export const createDebt = (data) => api.post('/debts', data).then(r => r.data)
+export const updateDebt = (id, data) => api.put(`/debts/${id}`, data)
+export const deleteDebt = (id) => api.delete(`/debts/${id}`)
+export const getDebtPayments = (debtId) => api.get(`/debts/${debtId}/payments`).then(r => r.data)
+export const createDebtPayment = (debtId, data) => api.post(`/debts/${debtId}/payments`, data).then(r => r.data)
+export const deleteDebtPayment = (debtId, paymentId) => api.delete(`/debts/${debtId}/payments/${paymentId}`)

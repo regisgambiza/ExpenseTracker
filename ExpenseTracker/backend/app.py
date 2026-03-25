@@ -64,7 +64,7 @@ def create_month():
     cur = conn.cursor()
     cur.execute("INSERT INTO months(year,month) VALUES(%s,%s) RETURNING id", (year, month))
     new_id = cur.fetchone()["id"]
-    # copy entries from source month if provided
+    # copy entries from source month if provided (skip debt categories - they're independent now)
     src = data.get("copy_from")
     if src:
         src_month = query("SELECT id FROM months WHERE year=%s AND month=%s", (src["year"], src["month"]), one=True)
@@ -72,12 +72,12 @@ def create_month():
             # build a mapping of old entry_id -> new entry_id
             cur.execute("""
                 INSERT INTO entries(month_id,category,label,amount,currency,sort_order)
-                SELECT %s,category,label,amount,currency,sort_order FROM entries WHERE month_id=%s
+                SELECT %s,category,label,amount,currency,sort_order FROM entries WHERE month_id=%s AND category NOT IN ('owing', 'owed')
                 RETURNING id, category, label, amount, currency
             """, (new_id, src_month["id"]))
             new_entries = cur.fetchall()
             # fetch source entries for matching
-            cur.execute("SELECT id, category, label, amount, currency FROM entries WHERE month_id=%s", (src_month["id"],))
+            cur.execute("SELECT id, category, label, amount, currency FROM entries WHERE month_id=%s AND category NOT IN ('owing', 'owed')", (src_month["id"],))
             src_entries = cur.fetchall()
             # match by category+label+amount+currency to build id map
             id_map = {}
@@ -163,6 +163,77 @@ def create_payment(entry_id):
 @app.route("/api/payments/<int:payment_id>", methods=["DELETE"])
 def delete_payment(payment_id):
     query("DELETE FROM debt_payments WHERE id=%s", (payment_id,), commit=True)
+    return jsonify({"ok": True})
+
+# ── Independent Debts ───────────────────────────────────────────────
+
+@app.route("/api/debts", methods=["GET"])
+def get_all_debts():
+    """Get all active debts with their payment totals"""
+    rows = query("""
+        SELECT d.id, d.type, d.label, d.original_amount, d.currency, d.created_at,
+               COALESCE(SUM(p.amount), 0) as total_paid
+        FROM debts d
+        LEFT JOIN debt_payments p ON p.debt_id = d.id
+        GROUP BY d.id
+        ORDER BY d.type, d.created_at
+    """)
+    return jsonify([dict(r) for r in rows])
+
+@app.route("/api/debts", methods=["POST"])
+def create_debt():
+    d = request.json
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO debts(type, label, original_amount, currency)
+        VALUES(%s, %s, %s, %s) RETURNING id
+    """, (d["type"], d["label"], d.get("amount", 0), d.get("currency", "THB")))
+    new_id = cur.fetchone()["id"]
+    conn.commit(); cur.close(); conn.close()
+    return jsonify({"id": new_id}), 201
+
+@app.route("/api/debts/<int:debt_id>", methods=["PUT"])
+def update_debt(debt_id):
+    d = request.json
+    fields = []
+    vals = []
+    for f in ["label", "original_amount", "currency"]:
+        if f in d:
+            fields.append(f"{f}=%s")
+            vals.append(d[f])
+    if not fields:
+        return jsonify({"ok": True})
+    vals.append(debt_id)
+    query(f"UPDATE debts SET {', '.join(fields)} WHERE id=%s", vals, commit=True)
+    return jsonify({"ok": True})
+
+@app.route("/api/debts/<int:debt_id>", methods=["DELETE"])
+def delete_debt(debt_id):
+    query("DELETE FROM debts WHERE id=%s", (debt_id,), commit=True)
+    return jsonify({"ok": True})
+
+@app.route("/api/debts/<int:debt_id>/payments", methods=["GET"])
+def get_debt_payments(debt_id):
+    rows = query("SELECT id, amount, payment_date, note, created_at FROM debt_payments WHERE debt_id=%s ORDER BY payment_date DESC", (debt_id,))
+    return jsonify([dict(r) for r in rows])
+
+@app.route("/api/debts/<int:debt_id>/payments", methods=["POST"])
+def create_debt_payment(debt_id):
+    d = request.json
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO debt_payments(debt_id, amount, payment_date, note)
+        VALUES(%s, %s, %s, %s) RETURNING id
+    """, (debt_id, d.get("amount", 0), d.get("payment_date"), d.get("note", "")))
+    new_id = cur.fetchone()["id"]
+    conn.commit(); cur.close(); conn.close()
+    return jsonify({"id": new_id}), 201
+
+@app.route("/api/debts/<int:debt_id>/payments/<int:payment_id>", methods=["DELETE"])
+def delete_debt_payment(debt_id, payment_id):
+    query("DELETE FROM debt_payments WHERE id=%s AND debt_id=%s", (payment_id, debt_id), commit=True)
     return jsonify({"ok": True})
 
 if __name__ == "__main__":
