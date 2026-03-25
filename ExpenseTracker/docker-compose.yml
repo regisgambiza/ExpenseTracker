@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: expensetracker_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: expensetracker
+      POSTGRES_USER: expensetracker
+      POSTGRES_PASSWORD: expensetracker123
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U expensetracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    container_name: expensetracker_api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://expensetracker:expensetracker123@db:5432/expensetracker
+      FLASK_ENV: development
+    ports:
+      - "5001:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+
+  frontend:
+    build: ./frontend
+    container_name: expensetracker_ui
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
