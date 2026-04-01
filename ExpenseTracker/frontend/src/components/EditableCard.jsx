@@ -65,7 +65,7 @@ export default function EditableCard({ entry, onUpdate, onDelete, showCurrency =
       ) : (
         <span
           onClick={() => setEditingLabel(true)}
-          style={{ flex: 1, color: 'var(--text)', cursor: 'text', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          style={{ flex: 1, color: 'var(--text)', cursor: 'text', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: entry.paid ? 'line-through' : 'none', opacity: entry.paid ? 0.6 : 1 }}
           title="click to edit"
         >{entry.label}</span>
       )}
@@ -94,7 +94,7 @@ export default function EditableCard({ entry, onUpdate, onDelete, showCurrency =
       ) : (
         <span
           onClick={() => { setAmountVal(amount); setEditingAmount(true) }}
-          style={{ fontWeight: 500, cursor: 'pointer', color: 'var(--text)', whiteSpace: 'nowrap' }}
+          style={{ fontWeight: 500, cursor: 'pointer', color: 'var(--text)', whiteSpace: 'nowrap', textDecoration: entry.paid ? 'line-through' : 'none', opacity: entry.paid ? 0.6 : 1 }}
           title="click to edit"
         >{fmt(amount)}</span>
       )}
@@ -118,6 +118,29 @@ export default function EditableCard({ entry, onUpdate, onDelete, showCurrency =
           title="View payment history"
         >
           📋
+        </button>
+      )}
+
+      {!isDebt && (
+        <button
+          onClick={() => onUpdate(entry.id, { paid: !entry.paid })}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: entry.paid ? 'var(--success)' : 'var(--muted)',
+            fontSize: 14,
+            padding: '0 4px',
+            lineHeight: 1,
+            flexShrink: 0,
+            cursor: 'pointer',
+            fontWeight: 500,
+            opacity: entry.paid ? 1 : 0.4
+          }}
+          onMouseEnter={e => e.target.style.opacity = 1}
+          onMouseLeave={e => e.target.style.opacity = entry.paid ? 1 : 0.4}
+          title={entry.paid ? 'Mark as unpaid' : 'Mark as paid'}
+        >
+          ✓
         </button>
       )}
 
