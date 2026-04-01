@@ -315,5 +315,50 @@ def delete_credit_card_payment(cc_id, payment_id):
     query("DELETE FROM debt_payments WHERE id=%s AND credit_card_id=%s", (payment_id, cc_id), commit=True)
     return jsonify({"ok": True})
 
+# ── Bank Accounts ───────────────────────────────────────────────
+
+@app.route("/api/bank_accounts", methods=["GET"])
+def get_bank_accounts():
+    """Get all bank accounts with their balances"""
+    rows = query("""
+        SELECT id, name, purpose, balance, currency, created_at
+        FROM bank_accounts
+        ORDER BY name
+    """)
+    return jsonify([dict(r) for r in rows])
+
+@app.route("/api/bank_accounts", methods=["POST"])
+def create_bank_account():
+    d = request.json
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO bank_accounts(name, purpose, balance, currency)
+        VALUES(%s, %s, %s, %s) RETURNING id
+    """, (d.get("name", "New Account"), d.get("purpose", ""), d.get("balance", 0), d.get("currency", "THB")))
+    new_id = cur.fetchone()["id"]
+    conn.commit(); cur.close(); conn.close()
+    return jsonify({"id": new_id}), 201
+
+@app.route("/api/bank_accounts/<int:account_id>", methods=["PUT"])
+def update_bank_account(account_id):
+    d = request.json
+    fields = []
+    vals = []
+    for f in ["name", "purpose", "balance", "currency"]:
+        if f in d:
+            fields.append(f"{f}=%s")
+            vals.append(d[f])
+    if not fields:
+        return jsonify({"ok": True})
+    vals.append(account_id)
+    query(f"UPDATE bank_accounts SET {', '.join(fields)} WHERE id=%s", vals, commit=True)
+    return jsonify({"ok": True})
+
+@app.route("/api/bank_accounts/<int:account_id>", methods=["DELETE"])
+def delete_bank_account(account_id):
+    query("DELETE FROM bank_accounts WHERE id=%s", (account_id,), commit=True)
+    return jsonify({"ok": True})
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

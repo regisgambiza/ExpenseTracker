@@ -16,20 +16,23 @@ export function useBudget() {
   const [zarThbManual, setZarThbManual] = useState(null)
   const [debts, setDebts] = useState([])
   const [creditCards, setCreditCards] = useState([])
+  const [bankAccounts, setBankAccounts] = useState([])
 
   const load = useCallback(async (y, m) => {
     setLoading(true)
     try {
-      const [monthData, settings, debtsData, creditCardsData] = await Promise.all([
+      const [monthData, settings, debtsData, creditCardsData, bankAccountsData] = await Promise.all([
         api.getMonth(y, m).catch(() => null),
         api.getSettings(),
         api.getDebts(),
-        api.getCreditCards()
+        api.getCreditCards(),
+        api.getBankAccounts()
       ])
       setRate(parseFloat(settings.zar_thb_rate || 1.65))
       setZarThbManual(settings.zar_thb_manual_total ? parseFloat(settings.zar_thb_manual_total) : null)
       setDebts(debtsData || [])
       setCreditCards(creditCardsData || [])
+      setBankAccounts(bankAccountsData || [])
       if (monthData) {
         setData(monthData)
       } else {
@@ -160,6 +163,29 @@ export function useBudget() {
     await api.deleteCreditCard(id)
   }
 
+  // Bank account functions
+  const addBankAccount = async () => {
+    const acc = await api.createBankAccount({
+      name: 'New Account',
+      purpose: '',
+      balance: 0,
+      currency: 'THB'
+    })
+    setBankAccounts(prev => [...prev, {
+      id: acc.id, name: 'New Account', purpose: '', balance: 0, currency: 'THB'
+    }])
+  }
+
+  const updateBankAccount = async (id, changes) => {
+    setBankAccounts(prev => prev.map(acc => acc.id === id ? { ...acc, ...changes } : acc))
+    await api.updateBankAccount(id, changes)
+  }
+
+  const deleteBankAccount = async (id) => {
+    setBankAccounts(prev => prev.filter(acc => acc.id !== id))
+    await api.deleteBankAccount(id)
+  }
+
   const entries = data?.entries || []
 
   const filterByPaid = (ents) => {
@@ -222,6 +248,7 @@ export function useBudget() {
     byCategory, addEntry, updateEntry, removeEntry, toThb,
     debts, addDebt, updateDebt, deleteDebt,
     creditCards, addCreditCard, updateCreditCard, deleteCreditCard,
+    bankAccounts, addBankAccount, updateBankAccount, deleteBankAccount,
     stats: { income, thbExp, zarExp, zarThb, totalExp, surplus, savRate, owedThb, owingThb, netDebt, unpaidThb, unpaidZar, unpaidZarThb, totalUnpaid }
   }
 }

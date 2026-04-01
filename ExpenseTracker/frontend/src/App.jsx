@@ -4,6 +4,7 @@ import Column, { SubTotal, SectionLabel } from './components/Column'
 import Summary from './components/Summary'
 import EditableCard from './components/EditableCard'
 import CreditCardColumn from './components/CreditCardColumn'
+import BankAccountColumn from './components/BankAccountColumn'
 
 const fmt = (n) => Math.round(parseFloat(n) || 0).toLocaleString()
 
@@ -97,6 +98,16 @@ export default function App() {
             style={{ ...filterBtn, background: b.filter === 'paid' ? 'var(--accent)' : 'transparent', color: b.filter === 'paid' ? '#000' : 'var(--muted)' }}
           >Paid</button>
         </div>
+      </div>
+
+      {/* Bank Accounts - placed above bills to pay */}
+      <div style={{ marginBottom: 16 }}>
+        <BankAccountColumn
+          bankAccounts={b.bankAccounts}
+          onAdd={b.addBankAccount}
+          onUpdate={b.updateBankAccount}
+          onDelete={b.deleteBankAccount}
+        />
       </div>
 
       {/* Board */}

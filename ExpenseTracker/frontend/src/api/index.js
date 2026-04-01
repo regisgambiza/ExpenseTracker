@@ -35,3 +35,9 @@ export const deleteCreditCard = (id) => api.delete(`/credit_cards/${id}`)
 export const getCreditCardPayments = (ccId) => api.get(`/credit_cards/${ccId}/payments`).then(r => r.data)
 export const createCreditCardPayment = (ccId, data) => api.post(`/credit_cards/${ccId}/payments`, data).then(r => r.data)
 export const deleteCreditCardPayment = (ccId, paymentId) => api.delete(`/credit_cards/${ccId}/payments/${paymentId}`)
+
+// Bank accounts API
+export const getBankAccounts = () => api.get('/bank_accounts').then(r => r.data)
+export const createBankAccount = (data) => api.post('/bank_accounts', data).then(r => r.data)
+export const updateBankAccount = (id, data) => api.put(`/bank_accounts/${id}`, data)
+export const deleteBankAccount = (id) => api.delete(`/bank_accounts/${id}`)
