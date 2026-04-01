@@ -6,14 +6,15 @@ const fmt = (n) => Math.round(parseFloat(n) || 0).toLocaleString()
 export default function EditableCard({ entry, onUpdate, onDelete, showCurrency = false }) {
   const [editingLabel, setEditingLabel] = useState(false)
   const [editingAmount, setEditingAmount] = useState(false)
-  const [labelVal, setLabelVal] = useState(entry.label)
   const [showPayments, setShowPayments] = useState(false)
+  const [labelVal, setLabelVal] = useState(entry.label)
+  const isDebt = entry.type === 'owed' || entry.type === 'owing'
+  const amountField = isDebt ? 'original_amount' : 'amount'
+  const [amountVal, setAmountVal] = useState(entry[amountField])
   const labelRef = useRef()
   const amountRef = useRef()
 
-  const isDebt = entry.type === 'owed' || entry.type === 'owing'
   const amount = isDebt ? (entry.original_amount !== undefined ? entry.original_amount : 0) : (entry.amount !== undefined ? entry.amount : 0)
-  const [amountVal, setAmountVal] = useState(amount)
 
   useEffect(() => { if (editingLabel) labelRef.current?.focus() }, [editingLabel])
   useEffect(() => { if (editingAmount) amountRef.current?.select() }, [editingAmount])
@@ -36,6 +37,8 @@ export default function EditableCard({ entry, onUpdate, onDelete, showCurrency =
       if (v !== amount) onUpdate(entry.id, { amount: v })
     }
   }
+
+  const displayAmount = entry[amountField]
 
   return (
     <div style={{

@@ -3,6 +3,7 @@ import { useBudget } from './hooks/useBudget'
 import Column, { SubTotal, SectionLabel } from './components/Column'
 import Summary from './components/Summary'
 import EditableCard from './components/EditableCard'
+import CreditCardColumn from './components/CreditCardColumn'
 
 const fmt = (n) => Math.round(parseFloat(n) || 0).toLocaleString()
 
@@ -205,81 +206,92 @@ export default function App() {
             }
           />
 
-          {/* Debts column */}
-          <div style={{
-            flex: '0 0 320px',
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-lg)',
-            padding: 12,
-          }}>
-            <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.07em', fontFamily: 'var(--font-display)' }}>
-              Debts
-            </span>
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              fontSize: 10,
-              fontWeight: 500,
-              color: 'var(--muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '.07em',
-              margin: '12px 0 5px 1px',
-              fontFamily: 'var(--font-display)'
-            }}>
-              <span style={{
-                background: 'var(--danger)',
-                color: '#fff',
-                padding: '2px 8px',
-                borderRadius: 'var(--radius)',
-                fontSize: 9,
-                fontWeight: 600
-              }}>I OWE</span>
-            </div>
-            <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 6 }}>click name or amount to edit</div>
-            {b.debts.filter(d => d.type === 'owing').map(e => (
-              <EditableCard key={e.id} entry={e} onUpdate={b.updateDebt} onDelete={b.deleteDebt} showCurrency />
-            ))}
-            <button onClick={() => b.addDebt('owing', 'THB')} style={addBtn}>+ add person</button>
-            <div style={{ borderTop: '1px solid var(--border)', margin: '8px 0 5px' }} />
-            <SubTotal label="Total owing (THB)" value={stats.owingThb} color="var(--danger)" />
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              fontSize: 10,
-              fontWeight: 500,
-              color: 'var(--muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '.07em',
-              margin: '12px 0 5px 1px',
-              fontFamily: 'var(--font-display)'
-            }}>
-              <span style={{
-                background: 'var(--success)',
-                color: '#fff',
-                padding: '2px 8px',
-                borderRadius: 'var(--radius)',
-                fontSize: 9,
-                fontWeight: 600
-              }}>OWED TO ME</span>
-            </div>
-            <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 6 }}>click name or amount to edit</div>
-            {b.debts.filter(d => d.type === 'owed').map(e => (
-              <EditableCard key={e.id} entry={e} onUpdate={b.updateDebt} onDelete={b.deleteDebt} showCurrency />
-            ))}
-            <button onClick={() => b.addDebt('owed', 'THB')} style={addBtn}>+ add person</button>
-            <div style={{ borderTop: '1px solid var(--border)', margin: '8px 0 5px' }} />
-            <SubTotal label="Total owed (THB)" value={stats.owedThb} color="var(--success)" />
-            <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0 4px' }} />
-            <SubTotal
-              label="Net position"
-              value={(stats.netDebt >= 0 ? '+' : '') + fmt(stats.netDebt)}
-              color={stats.netDebt >= 0 ? 'var(--success)' : 'var(--danger)'}
+          {/* Right column - Credit Cards above Debts */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: '0 0 320px' }}>
+            {/* Credit Cards column */}
+            <CreditCardColumn
+              creditCards={b.creditCards}
+              onAdd={b.addCreditCard}
+              onUpdate={b.updateCreditCard}
+              onDelete={b.deleteCreditCard}
             />
+
+            {/* Debts column */}
+            <div style={{
+              flex: '0 0 auto',
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-lg)',
+              padding: 12,
+            }}>
+              <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.07em', fontFamily: 'var(--font-display)' }}>
+                Debts
+              </span>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontSize: 10,
+                fontWeight: 500,
+                color: 'var(--muted)',
+                textTransform: 'uppercase',
+                letterSpacing: '.07em',
+                margin: '12px 0 5px 1px',
+                fontFamily: 'var(--font-display)'
+              }}>
+                <span style={{
+                  background: 'var(--danger)',
+                  color: '#fff',
+                  padding: '2px 8px',
+                  borderRadius: 'var(--radius)',
+                  fontSize: 9,
+                  fontWeight: 600
+                }}>I OWE</span>
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 6 }}>click name or amount to edit</div>
+              {b.debts.filter(d => d.type === 'owing').map(e => (
+                <EditableCard key={e.id} entry={e} onUpdate={b.updateDebt} onDelete={b.deleteDebt} showCurrency />
+              ))}
+              <button onClick={() => b.addDebt('owing', 'THB')} style={addBtn}>+ add person</button>
+              <div style={{ borderTop: '1px solid var(--border)', margin: '8px 0 5px' }} />
+              <SubTotal label="Total owing (THB)" value={stats.owingThb} color="var(--danger)" />
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontSize: 10,
+                fontWeight: 500,
+                color: 'var(--muted)',
+                textTransform: 'uppercase',
+                letterSpacing: '.07em',
+                margin: '12px 0 5px 1px',
+                fontFamily: 'var(--font-display)'
+              }}>
+                <span style={{
+                  background: 'var(--success)',
+                  color: '#fff',
+                  padding: '2px 8px',
+                  borderRadius: 'var(--radius)',
+                  fontSize: 9,
+                  fontWeight: 600
+                }}>OWED TO ME</span>
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 6 }}>click name or amount to edit</div>
+              {b.debts.filter(d => d.type === 'owed').map(e => (
+                <EditableCard key={e.id} entry={e} onUpdate={b.updateDebt} onDelete={b.deleteDebt} showCurrency />
+              ))}
+              <button onClick={() => b.addDebt('owed', 'THB')} style={addBtn}>+ add person</button>
+              <div style={{ borderTop: '1px solid var(--border)', margin: '8px 0 5px' }} />
+              <SubTotal label="Total owed (THB)" value={stats.owedThb} color="var(--success)" />
+              <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0 4px' }} />
+              <SubTotal
+                label="Net position"
+                value={(stats.netDebt >= 0 ? '+' : '') + fmt(stats.netDebt)}
+                color={stats.netDebt >= 0 ? 'var(--success)' : 'var(--danger)'}
+              />
+            </div>
           </div>
         </div>
 

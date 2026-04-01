@@ -26,3 +26,12 @@ export const deleteDebt = (id) => api.delete(`/debts/${id}`)
 export const getDebtPayments = (debtId) => api.get(`/debts/${debtId}/payments`).then(r => r.data)
 export const createDebtPayment = (debtId, data) => api.post(`/debts/${debtId}/payments`, data).then(r => r.data)
 export const deleteDebtPayment = (debtId, paymentId) => api.delete(`/debts/${debtId}/payments/${paymentId}`)
+
+// Credit cards API
+export const getCreditCards = () => api.get('/credit_cards').then(r => r.data)
+export const createCreditCard = (data) => api.post('/credit_cards', data).then(r => r.data)
+export const updateCreditCard = (id, data) => api.put(`/credit_cards/${id}`, data)
+export const deleteCreditCard = (id) => api.delete(`/credit_cards/${id}`)
+export const getCreditCardPayments = (ccId) => api.get(`/credit_cards/${ccId}/payments`).then(r => r.data)
+export const createCreditCardPayment = (ccId, data) => api.post(`/credit_cards/${ccId}/payments`, data).then(r => r.data)
+export const deleteCreditCardPayment = (ccId, paymentId) => api.delete(`/credit_cards/${ccId}/payments/${paymentId}`)

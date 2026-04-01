@@ -236,5 +236,84 @@ def delete_debt_payment(debt_id, payment_id):
     query("DELETE FROM debt_payments WHERE id=%s AND debt_id=%s", (payment_id, debt_id), commit=True)
     return jsonify({"ok": True})
 
+# ── Credit Cards ───────────────────────────────────────────────
+
+@app.route("/api/credit_cards", methods=["GET"])
+def get_credit_cards():
+    """Get all credit cards with their payment totals"""
+    rows = query("""
+        SELECT cc.id, cc.name, cc.credit_limit, cc.currency, cc.statement_date, cc.due_date, cc.created_at,
+               COALESCE(SUM(dp.amount), 0) as total_paid
+        FROM credit_cards cc
+        LEFT JOIN debt_payments dp ON dp.credit_card_id = cc.id
+        GROUP BY cc.id
+        ORDER BY cc.name
+    """)
+    return jsonify([dict(r) for r in rows])
+
+@app.route("/api/credit_cards", methods=["POST"])
+def create_credit_card():
+    d = request.json
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO credit_cards(name, credit_limit, currency, statement_date, due_date)
+        VALUES(%s, %s, %s, %s, %s) RETURNING id
+    """, (d.get("name", "New Card"), d.get("credit_limit", 0), d.get("currency", "THB"), 
+          d.get("statement_date"), d.get("due_date")))
+    new_id = cur.fetchone()["id"]
+    conn.commit(); cur.close(); conn.close()
+    return jsonify({"id": new_id}), 201
+
+@app.route("/api/credit_cards/<int:cc_id>", methods=["PUT"])
+def update_credit_card(cc_id):
+    d = request.json
+    fields = []
+    vals = []
+    for f in ["name", "credit_limit", "currency", "statement_date", "due_date"]:
+        if f in d:
+            fields.append(f"{f}=%s")
+            vals.append(d[f])
+    if not fields:
+        return jsonify({"ok": True})
+    vals.append(cc_id)
+    query(f"UPDATE credit_cards SET {', '.join(fields)} WHERE id=%s", vals, commit=True)
+    return jsonify({"ok": True})
+
+@app.route("/api/credit_cards/<int:cc_id>", methods=["DELETE"])
+def delete_credit_card(cc_id):
+    query("DELETE FROM credit_cards WHERE id=%s", (cc_id,), commit=True)
+    return jsonify({"ok": True})
+
+@app.route("/api/credit_cards/<int:cc_id>/payments", methods=["GET"])
+def get_credit_card_payments(cc_id):
+    rows = query("""
+        SELECT dp.id, dp.amount, dp.payment_date, dp.note, dp.created_at,
+               d.label as debt_label
+        FROM debt_payments dp
+        LEFT JOIN debts d ON d.id = dp.debt_id
+        WHERE dp.credit_card_id=%s
+        ORDER BY dp.payment_date DESC, dp.created_at DESC
+    """, (cc_id,))
+    return jsonify([dict(r) for r in rows])
+
+@app.route("/api/credit_cards/<int:cc_id>/payments", methods=["POST"])
+def create_credit_card_payment(cc_id):
+    d = request.json
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO debt_payments(credit_card_id, debt_id, amount, payment_date, note)
+        VALUES(%s, %s, %s, %s, %s) RETURNING id
+    """, (cc_id, d.get("debt_id"), d.get("amount", 0), d.get("payment_date"), d.get("note", "")))
+    new_id = cur.fetchone()["id"]
+    conn.commit(); cur.close(); conn.close()
+    return jsonify({"id": new_id}), 201
+
+@app.route("/api/credit_cards/<int:cc_id>/payments/<int:payment_id>", methods=["DELETE"])
+def delete_credit_card_payment(cc_id, payment_id):
+    query("DELETE FROM debt_payments WHERE id=%s AND credit_card_id=%s", (payment_id, cc_id), commit=True)
+    return jsonify({"ok": True})
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

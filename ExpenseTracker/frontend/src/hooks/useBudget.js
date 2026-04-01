@@ -15,18 +15,21 @@ export function useBudget() {
   const [filter, setFilter] = useState('all') // 'all', 'unpaid', 'paid'
   const [zarThbManual, setZarThbManual] = useState(null)
   const [debts, setDebts] = useState([])
+  const [creditCards, setCreditCards] = useState([])
 
   const load = useCallback(async (y, m) => {
     setLoading(true)
     try {
-      const [monthData, settings, debtsData] = await Promise.all([
+      const [monthData, settings, debtsData, creditCardsData] = await Promise.all([
         api.getMonth(y, m).catch(() => null),
         api.getSettings(),
-        api.getDebts()
+        api.getDebts(),
+        api.getCreditCards()
       ])
       setRate(parseFloat(settings.zar_thb_rate || 1.65))
       setZarThbManual(settings.zar_thb_manual_total ? parseFloat(settings.zar_thb_manual_total) : null)
       setDebts(debtsData || [])
+      setCreditCards(creditCardsData || [])
       if (monthData) {
         setData(monthData)
       } else {
@@ -135,6 +138,28 @@ export function useBudget() {
     await api.deleteDebt(id)
   }
 
+  // Credit card functions
+  const addCreditCard = async () => {
+    const cc = await api.createCreditCard({
+      name: 'New Card',
+      credit_limit: 0,
+      currency: 'THB'
+    })
+    setCreditCards(prev => [...prev, {
+      id: cc.id, name: 'New Card', credit_limit: 0, currency: 'THB', total_paid: 0
+    }])
+  }
+
+  const updateCreditCard = async (id, changes) => {
+    setCreditCards(prev => prev.map(cc => cc.id === id ? { ...cc, ...changes } : cc))
+    await api.updateCreditCard(id, changes)
+  }
+
+  const deleteCreditCard = async (id) => {
+    setCreditCards(prev => prev.filter(cc => cc.id !== id))
+    await api.deleteCreditCard(id)
+  }
+
   const entries = data?.entries || []
 
   const filterByPaid = (ents) => {
@@ -196,6 +221,7 @@ export function useBudget() {
     navigate, rollover,
     byCategory, addEntry, updateEntry, removeEntry, toThb,
     debts, addDebt, updateDebt, deleteDebt,
+    creditCards, addCreditCard, updateCreditCard, deleteCreditCard,
     stats: { income, thbExp, zarExp, zarThb, totalExp, surplus, savRate, owedThb, owingThb, netDebt, unpaidThb, unpaidZar, unpaidZarThb, totalUnpaid }
   }
 }
